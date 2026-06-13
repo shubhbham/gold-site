@@ -1,0 +1,54 @@
+---
+export const prerender = true;
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getCanonicalUrl } from "../lib/site";
+---
+
+<BaseLayout
+  title="Add Live Gold Rates to Your Jewellery Website"
+  description="Offer your jewellery customers a clean embedded live gold rate widget with daily benchmark pricing."
+  canonical={getCanonicalUrl("/embed-pricing")}
+>
+  <section class="mx-auto max-w-6xl px-4 py-12 md:px-6">
+    <div class="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+      <div class="rounded-4xl border border-gray-200 bg-white p-8 shadow-[0_24px_80px_-44px_rgba(17,24,39,0.3)]">
+        <p class="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">Jeweller widget</p>
+        <h1 class="mt-3 text-4xl font-semibold tracking-tight text-gray-950">Add Live Gold Rates to Your Jewellery Website</h1>
+        <p class="mt-4 text-base leading-8 text-gray-600">
+          Publish a lightweight daily rate box on your product pages, landing pages, or homepage so customers see the benchmark before contacting your store.
+        </p>
+        <div class="mt-8 rounded-[1.75rem] bg-gray-950 p-6 text-white">
+          <div class="text-sm uppercase tracking-[0.24em] text-white/60">Price</div>
+          <div class="mt-3 text-5xl font-semibold">₹499<span class="text-lg font-medium text-white/65">/month</span></div>
+          <ul class="mt-6 space-y-3 text-sm text-white/75">
+            <li>Daily cached benchmark updates</li>
+            <li>City and karat selection</li>
+            <li>Theme switch for dark or light layouts</li>
+            <li>Simple iframe installation</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <div class="rounded-4xl border border-gray-200 bg-white p-6 shadow-[0_24px_80px_-44px_rgba(17,24,39,0.3)]">
+          <p class="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">Preview</p>
+          <div class="mt-5 overflow-hidden rounded-3xl border border-amber-100">
+            <iframe src="/embed?city=bangalore&karat=22" title="Gold rate widget preview" class="h-44 w-full border-0"></iframe>
+          </div>
+        </div>
+
+        <form action="https://formspree.io/f/your-form-id" method="POST" class="rounded-4xl border border-gray-200 bg-white p-6 shadow-[0_24px_80px_-44px_rgba(17,24,39,0.3)]">
+          <h2 class="text-2xl font-semibold text-gray-950">Request setup</h2>
+          <div class="mt-5 grid gap-4 sm:grid-cols-2">
+            <input name="name" placeholder="Name" class="rounded-2xl border border-gray-200 px-4 py-3 outline-none focus:border-amber-500" />
+            <input name="email" type="email" placeholder="Email" class="rounded-2xl border border-gray-200 px-4 py-3 outline-none focus:border-amber-500" />
+            <input name="website" placeholder="Website" class="rounded-2xl border border-gray-200 px-4 py-3 outline-none focus:border-amber-500 sm:col-span-2" />
+            <input name="city" placeholder="City" class="rounded-2xl border border-gray-200 px-4 py-3 outline-none focus:border-amber-500 sm:col-span-2" />
+          </div>
+          <button type="submit" class="mt-5 rounded-full bg-amber-600 px-5 py-3 text-sm font-semibold text-white">Request pricing</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

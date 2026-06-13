@@ -1,0 +1,136 @@
+---
+export const prerender = false;
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PriceWidget from "../components/PriceWidget";
+import PriceChart from "../components/PriceChart";
+import GoldCalculator from "../components/GoldCalculator";
+import GoldInvestCTA from "../components/GoldInvestCTA";
+import AdSlot from "../components/AdSlot";
+import {
+	FAQS,
+	entriesForCity,
+	formatCurrencyValue,
+	formatPriceDate,
+	getCanonicalUrl,
+	getDefaultKarat,
+	getHistoryData,
+	getHomeCards,
+	getSummaryData,
+	latestForKarat,
+} from "../lib/site";
+
+const summary = await getSummaryData();
+const heroData = summary.find((entry) => entry.city_slug === "bangalore" && entry.karat === 22) ?? null;
+const cards = getHomeCards(summary);
+const chartData = await getHistoryData("bangalore", 22, "1m");
+
+const websiteSchema = {
+	"@context": "https://schema.org",
+	"@type": "WebSite",
+	name: "Gold Price Today",
+	url: getCanonicalUrl("/"),
+	description: "Daily gold benchmark rates for India, USA, Canada, UAE, and the UK.",
+};
+
+const faqSchema = {
+	"@context": "https://schema.org",
+	"@type": "FAQPage",
+	mainEntity: FAQS.map((item) => ({
+		"@type": "Question",
+		name: item.question,
+		acceptedAnswer: {
+			"@type": "Answer",
+			text: item.answer,
+		},
+	})),
+};
+---
+
+<BaseLayout
+	title="Gold Price Today | Live 22k 24k Rates India USA | Gold Price Today"
+	description="Daily gold prices for India, USA, Canada, UAE, and UK with 22k and 24k benchmarks, charts, calculator, and embeddable widgets."
+	canonical={getCanonicalUrl("/")}
+	schema={websiteSchema}
+>
+	<section class="mx-auto max-w-7xl px-4 py-10 md:px-6 md:py-14">
+		<PriceWidget client:load initialData={heroData} defaultCity="bangalore" defaultKarat={22} />
+	</section>
+
+	<section class="mx-auto max-w-7xl px-4 pb-12 md:px-6">
+		<div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+			{cards.map((entry) => {
+				const cityEntries = entriesForCity(summary, entry.city_slug);
+				const twentyTwo = latestForKarat(cityEntries, 22);
+				const twentyFour = latestForKarat(cityEntries, 24);
+
+				return (
+					<a href={`/gold-price-today-${entry.city_slug}`} class="rounded-[1.75rem] border border-gray-200 bg-white p-6 shadow-[0_22px_60px_-40px_rgba(17,24,39,0.35)] transition hover:-translate-y-0.5">
+						<div class="flex items-start justify-between gap-3">
+							<div>
+								<p class="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">{entry.country_code}</p>
+								<h2 class="mt-2 text-2xl font-semibold text-gray-950">{entry.city_name}</h2>
+							</div>
+							<span class={`rounded-full px-3 py-2 text-xs font-semibold ${entry.change_amount >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+								{entry.change_amount >= 0 ? "▲" : "▼"} {entry.change_percent}%
+							</span>
+						</div>
+						<div class="mt-6 grid grid-cols-2 gap-4">
+							<div>
+								<p class="text-sm text-gray-500">22k est. retail</p>
+								<p class="mt-2 text-2xl font-semibold text-gray-950">{twentyTwo ? formatCurrencyValue(twentyTwo.retail_local ?? twentyTwo.price_local, twentyTwo.currency) : "-"}</p>
+								<p class="mt-1 text-xs text-gray-500">Benchmark {twentyTwo ? formatCurrencyValue(twentyTwo.benchmark_local ?? twentyTwo.price_local, twentyTwo.currency) : "-"}</p>
+							</div>
+							<div>
+								<p class="text-sm text-gray-500">24k est. retail</p>
+								<p class="mt-2 text-2xl font-semibold text-gray-950">{twentyFour ? formatCurrencyValue(twentyFour.retail_local ?? twentyFour.price_local, twentyFour.currency) : "-"}</p>
+								<p class="mt-1 text-xs text-gray-500">Benchmark {twentyFour ? formatCurrencyValue(twentyFour.benchmark_local ?? twentyFour.price_local, twentyFour.currency) : "-"}</p>
+							</div>
+						</div>
+						<p class="mt-5 text-sm text-gray-500">Rate as of {formatPriceDate(entry.price_date)}</p>
+					</a>
+				);
+			})}
+		</div>
+	</section>
+
+	<section class="mx-auto max-w-7xl px-4 pb-12 md:px-6">
+		<AdSlot slot="in-article" />
+	</section>
+
+	<section class="mx-auto max-w-7xl px-4 pb-12 md:px-6">
+		<div class="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+			<PriceChart client:only="react" city="bangalore" karat={22} initialRange="1m" initialData={chartData} />
+			<div class="rounded-4xl border border-gray-200 bg-white p-6 shadow-[0_24px_80px_-44px_rgba(17,24,39,0.3)]">
+				<p class="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">Market summary</p>
+				<h2 class="mt-3 text-3xl font-semibold text-gray-950">One cached rate, many fast pages.</h2>
+				<p class="mt-4 text-sm leading-7 text-gray-600">
+					The site fetches upstream data once per day, stores the normalized result in D1, and serves visitors from Cloudflare KV. That keeps user-facing traffic detached from third-party API limits while preserving a consistent daily benchmark.
+				</p>
+			</div>
+		</div>
+	</section>
+
+	<section class="mx-auto max-w-7xl px-4 pb-12 md:px-6">
+		<GoldCalculator client:visible />
+	</section>
+
+	<section class="mx-auto max-w-7xl px-4 pb-12 md:px-6">
+		<GoldInvestCTA client:load countryCode="IN" />
+	</section>
+
+	<section class="mx-auto max-w-7xl px-4 pb-16 md:px-6">
+		<div class="rounded-4xl border border-gray-200 bg-white p-6 shadow-[0_24px_80px_-44px_rgba(17,24,39,0.3)] md:p-8">
+			<p class="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">FAQ</p>
+			<div class="mt-6 grid gap-4 md:grid-cols-2">
+				{FAQS.map((item) => (
+					<article class="rounded-3xl bg-amber-50/60 p-5">
+						<h3 class="text-lg font-semibold text-gray-950">{item.question}</h3>
+						<p class="mt-3 text-sm leading-7 text-gray-600">{item.answer}</p>
+					</article>
+				))}
+			</div>
+		</div>
+		<script type="application/ld+json" set:html={JSON.stringify(faqSchema).replace(/</g, "\\u003c")} />
+	</section>
+</BaseLayout>

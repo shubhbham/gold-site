@@ -1,0 +1,10 @@
+{
+  "name": "gold-site",
+  "private": true,
+    "scripts": {
+    "dev:api": "cd apps/api && wrangler dev",
+    "dev:web": "cd apps/web && npm run dev",
+    "deploy:api": "cd apps/api && wrangler deploy",
+    "deploy:web": "cd apps/web && npm run build && wrangler pages deploy dist"
+  }
+}

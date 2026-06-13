@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+	color-scheme: light;
+	font-family: system-ui, -apple-system, sans-serif;
+	--surface: #fffaf1;
+	--ink: #111827;
+	--muted: #4b5563;
+	--gold: #d97706;
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+body {
+	margin: 0;
+}
+
+a {
+	color: inherit;
+	text-decoration: none;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+.skeleton-bar {
+	animation: pulse-bars 1.4s linear infinite;
+	background: linear-gradient(90deg, rgba(229, 231, 235, 0.88), rgba(243, 244, 246, 1), rgba(229, 231, 235, 0.88));
+	background-size: 220% 100%;
+}
+
+@keyframes pulse-bars {
+	0% {
+		background-position: 100% 0;
+	}
+
+	100% {
+		background-position: -100% 0;
+	}
+}

@@ -1,0 +1,98 @@
+---
+import "../styles/global.css";
+import { CITY_CONFIGS } from "@gold-site/shared";
+import AdSlot from "../components/AdSlot";
+import { API_BASE_URL, SITE_NAME, safeJsonLd } from "../lib/site";
+
+interface Props {
+  title: string;
+  description: string;
+  canonical: string;
+  ogImage?: string;
+  bodyClass?: string;
+  schema?: unknown;
+}
+
+const { title, description, canonical, ogImage, bodyClass = "", schema } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="robots" content="index,follow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    {ogImage ? <meta property="og:image" content={ogImage} /> : null}
+    <link rel="canonical" href={canonical} />
+    <link rel="preconnect" href={API_BASE_URL ?? "http://127.0.0.1:8787"} />
+    <title>{title}</title>
+    {schema ? <script type="application/ld+json" set:html={safeJsonLd(schema)} /> : null}
+  </head>
+  <body class={`bg-[radial-gradient(circle_at_top,rgba(217,119,6,0.16),transparent_32%),linear-gradient(180deg,#fffdf7,#f7f5ef_60%,#ffffff)] text-gray-900 antialiased ${bodyClass}`}>
+    <div class="min-h-screen">
+      <header class="border-b border-amber-100/70 bg-white/80 backdrop-blur">
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4 md:px-6">
+          <a href="/" class="flex items-center gap-3 font-semibold tracking-tight text-gray-950">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-amber-600 text-lg text-white shadow-sm">Au</span>
+            <span>
+              <span class="block text-lg leading-none">{SITE_NAME}</span>
+              <span class="block text-xs font-medium uppercase tracking-[0.24em] text-gray-500">Daily global benchmark</span>
+            </span>
+          </a>
+          <nav class="hidden items-center gap-5 text-sm font-medium text-gray-700 md:flex">
+            <a href="/gold-price-calculator" class="hover:text-amber-700">Calculator</a>
+            <a href="/gold-price-history/bangalore" class="hover:text-amber-700">History</a>
+            <a href="/embed-pricing" class="hover:text-amber-700">Widget</a>
+            <details class="group relative">
+              <summary class="list-none cursor-pointer hover:text-amber-700">Cities</summary>
+              <div class="absolute right-0 top-full z-20 mt-3 grid w-72 grid-cols-2 gap-2 rounded-2xl border border-amber-100 bg-white p-4 shadow-xl shadow-amber-950/10">
+                {CITY_CONFIGS.map((city) => (
+                  <a href={`/gold-price-today-${city.city_slug}`} class="rounded-xl px-3 py-2 text-sm text-gray-700 transition hover:bg-amber-50 hover:text-amber-700">
+                    {city.city_name}
+                  </a>
+                ))}
+              </div>
+            </details>
+          </nav>
+        </div>
+      </header>
+
+      <div class="mx-auto max-w-7xl px-4 pt-4 md:px-6">
+        <AdSlot slot="header-banner" />
+      </div>
+
+      <main>
+        <slot />
+      </main>
+
+      <div class="mx-auto mt-16 max-w-7xl px-4 md:px-6">
+        <AdSlot slot="footer-banner" />
+      </div>
+
+      <footer class="mx-auto mt-10 max-w-7xl px-4 pb-12 md:px-6">
+        <div class="rounded-4xl border border-gray-200 bg-white px-6 py-8 shadow-[0_20px_70px_-40px_rgba(31,41,55,0.35)]">
+          <div class="grid gap-8 md:grid-cols-[1.2fr_1fr]">
+            <div>
+              <h2 class="text-xl font-semibold text-gray-950">Track benchmark gold rates across major markets.</h2>
+              <p class="mt-3 max-w-2xl text-sm leading-7 text-gray-600">
+                Gold prices shown include a benchmark metal rate and, where displayed, an estimated retail rate derived from configurable premiums. Not financial advice. Verify with your local jeweller before purchase.
+              </p>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-600">
+              {CITY_CONFIGS.map((city) => (
+                <a href={`/gold-price-today-${city.city_slug}`} class="hover:text-amber-700">
+                  {city.city_name}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

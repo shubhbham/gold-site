@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.output/
+.wrangler/
+.cloudflare/
+
+# Astro generated types
+.astro/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.secret
+
+# Wrangler local state (D1 local DB, KV store etc.)
+.wrangler/
+
+# Uploaded / generated data files — keep out of source control
+*.csv
+*.sql.gz
+
+# Test artefacts
+TEST_RESULTS.md
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+**/.vscode/settings.json
+
+# Generated / large data SQL files (backfills etc.)
+apps/api/data/

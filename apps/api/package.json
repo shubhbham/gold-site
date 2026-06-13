@@ -1,0 +1,27 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest",
+    "cf-typegen": "wrangler types",
+    "history:sql": "node scripts/generate-history-sql.mjs",
+    "history:sql:synthetic": "node scripts/generate-history-sql.mjs --synthetic-years 10"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.12.4",
+    "@cloudflare/workers-types": "^4.20260613.1",
+    "@types/node": "^25.9.3",
+    "typescript": "^5.5.2",
+    "vitest": "~3.2.0",
+    "wrangler": "^4.100.0"
+  },
+  "dependencies": {
+    "@gold-site/shared": "workspace:*",
+    "hono": "^4.12.25",
+    "zod": "^4.4.3"
+  }
+}

@@ -1,0 +1,77 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "gold-api-worker",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-06-13",
+	"observability": {
+		"enabled": true,
+		"logs": {
+			"head_sampling_rate": 1
+		},
+		"traces": {
+			"enabled": true,
+			"head_sampling_rate": 0.05
+		}
+	},
+	"upload_source_maps": true,
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "gold_prices_db",
+			"database_name": "gold-prices-db",
+			"database_id": "fb619564-960d-4e1f-b1ab-4481d1c3b2ad"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "GOLD_CACHE",
+			"id": "22f7c86c575c435c86ef1abafe6a81d5"
+		}
+	],
+	"vars": {
+		"CACHE_TTL_SECONDS": "86400",
+		"HISTORY_CACHE_TTL_SECONDS": "86400",
+		"METALS_API_URL": "https://api.metals.dev/v1/latest",
+		"GOLDAPI_URL": "https://www.goldapi.io/api/XAU/USD",
+		"FX_API_URL": "https://api.exchangerate-api.com/v4/latest/USD"
+	},
+	"triggers": {
+		"crons": [
+			"0 3 * * *"
+		]
+	},
+	/**
+	 * Smart Placement
+	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
+	 */
+	// "placement": {  "mode": "smart" }
+	/**
+	 * Bindings
+	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
+	 * databases, object storage, AI inference, real-time communication and more.
+	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
+	 */
+	/**
+	 * Environment Variables
+	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
+	 * Note: Use secrets to store sensitive data.
+	 * https://developers.cloudflare.com/workers/configuration/secrets/
+	 */
+	// "vars": {  "MY_VARIABLE": "production_value" }
+	/**
+	 * Static Assets
+	 * https://developers.cloudflare.com/workers/static-assets/binding/
+	 */
+	// "assets": {  "directory": "./public/",  "binding": "ASSETS" }
+	/**
+	 * Service Bindings (communicate between multiple Workers)
+	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
+	 */
+	// "services": [  {   "binding": "MY_SERVICE",   "service": "my-service"  } ]
+}
