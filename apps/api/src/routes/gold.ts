@@ -36,7 +36,7 @@ async function withWeeklyChange(
   c: Context<AppEnv>,
   entry: GoldPriceEntry,
 ): Promise<GoldPriceEntry> {
-  const previous = await c.env.gold_prices_db
+  const previous = await c.env.DB
     .prepare(
       `SELECT price_local
        FROM gold_prices
@@ -94,7 +94,7 @@ export async function getGoldHandler(c: Context<AppEnv>) {
       return c.json(payload);
     }
 
-    const row = await c.env.gold_prices_db
+    const row = await c.env.DB
       .prepare(
         `SELECT city_slug, city_name, country_code, karat, price_local, price_usd, currency, unit,
                 change_amount, change_percent, high_today, low_today, price_date, fetched_at

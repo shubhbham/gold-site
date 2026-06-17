@@ -1,9 +1,10 @@
 ---
-export const prerender = false;
+export const prerender = true;
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PriceChart from "../../components/PriceChart";
 import {
+  CITY_PATHS,
   formatCurrencyValue,
   formatPriceDate,
   getCanonicalUrl,
@@ -11,6 +12,10 @@ import {
   getDefaultKarat,
   getHistoryData,
 } from "../../lib/site";
+
+export function getStaticPaths() {
+  return CITY_PATHS.map((city) => ({ params: { city } }));
+}
 
 const { city } = Astro.params;
 const citySlug = city ?? "bangalore";

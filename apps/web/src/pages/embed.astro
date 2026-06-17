@@ -1,13 +1,16 @@
 ---
 export const prerender = false;
 
-import type { GoldPriceEntry } from "@gold-site/shared";
-import { fetchJson } from "../lib/site";
+import type { GoldKarat, GoldPriceEntry } from "@gold-site/shared";
+import { getGoldPrice } from "../lib/goldService";
+import { env } from "cloudflare:workers";
 
 const city = Astro.url.searchParams.get("city") ?? "bangalore";
-const karat = Astro.url.searchParams.get("karat") ?? "22";
+const karatParam = Astro.url.searchParams.get("karat") ?? "22";
+const karat = (karatParam === "24" ? 24 : 22) as GoldKarat;
 const theme = Astro.url.searchParams.get("theme") ?? "light";
-const entry = await fetchJson<GoldPriceEntry>(`/api/gold?city=${city}&karat=${karat}`);
+
+const entry: GoldPriceEntry | null = await getGoldPrice(env, city, karat);
 const isDark = theme === "dark";
 const bodyBackground = isDark ? "#111827" : "#fffdf5";
 const bodyColor = isDark ? "#f9fafb" : "#111827";

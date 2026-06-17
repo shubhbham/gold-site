@@ -2,7 +2,25 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "gold-web",
   "compatibility_date": "2026-06-13",
+  "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "gold-prices-db",
+      "database_id": "fb619564-960d-4e1f-b1ab-4481d1c3b2ad"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "GOLD_CACHE",
+      "id": "22f7c86c575c435c86ef1abafe6a81d5"
+    },
+    {
+      "binding": "SESSION",
+      "id": "98a096d869d34698ae9bc24d0fb1c399"
+    }
+  ]
 }

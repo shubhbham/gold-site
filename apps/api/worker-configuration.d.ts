@@ -3,7 +3,7 @@
 // Runtime types generated with workerd@1.20260611.1 2026-06-13 nodejs_compat
 interface __BaseEnv_Env {
 	GOLD_CACHE: KVNamespace;
-	gold_prices_db: D1Database;
+	DB: D1Database;
 	CACHE_TTL_SECONDS: "86400";
 	HISTORY_CACHE_TTL_SECONDS: "86400";
 	METALS_API_URL: "https://api.metals.dev/v1/latest";

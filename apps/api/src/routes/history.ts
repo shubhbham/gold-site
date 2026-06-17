@@ -65,7 +65,7 @@ export async function getHistoryHandler(c: Context<AppEnv>) {
 
     const sql = days <= 90 ? dailySql : days <= 365 ? weeklySql : monthlySql;
     const windowExpr = `-${days} days`;
-    const result = await c.env.gold_prices_db
+    const result = await c.env.DB
       .prepare(sql)
       .bind(parsed.city, karat, windowExpr)
       .all<HistoryPoint>();

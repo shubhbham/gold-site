@@ -14,16 +14,19 @@ import {
 	formatPriceDate,
 	getCanonicalUrl,
 	getDefaultKarat,
-	getHistoryData,
 	getHomeCards,
-	getSummaryData,
 	latestForKarat,
 } from "../lib/site";
+import {
+	getSummaryData,
+	getHistoryData,
+} from "../lib/goldService";
+import { env } from "cloudflare:workers";
 
-const summary = await getSummaryData();
+const summary = await getSummaryData(env);
 const heroData = summary.find((entry) => entry.city_slug === "bangalore" && entry.karat === 22) ?? null;
 const cards = getHomeCards(summary);
-const chartData = await getHistoryData("bangalore", 22, "1m");
+const chartData = await getHistoryData(env, "bangalore", 22, "1m");
 
 const websiteSchema = {
 	"@context": "https://schema.org",

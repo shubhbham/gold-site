@@ -23,7 +23,7 @@ export const SITE_DESCRIPTION =
   "Daily gold benchmark rates for India, USA, Canada, UAE, and the UK with charts, a calculator, and an embeddable widget.";
 
 export const API_BASE_URL =
-  (import.meta.env.PUBLIC_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "http://127.0.0.1:8787";
+  (import.meta.env.PUBLIC_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "https://gold-api-worker.shubhbham6.workers.dev";
 
 export const CITY_PATHS = CITY_CONFIGS.map((city) => city.city_slug);
 

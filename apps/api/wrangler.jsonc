@@ -23,7 +23,7 @@
 	],
 	"d1_databases": [
 		{
-			"binding": "gold_prices_db",
+			"binding": "DB",
 			"database_name": "gold-prices-db",
 			"database_id": "fb619564-960d-4e1f-b1ab-4481d1c3b2ad"
 		}

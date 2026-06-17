@@ -81,7 +81,7 @@ function parseNumber(value: string | undefined, fallback: number): number {
 }
 
 export async function getRuntimeConfig(env: Env): Promise<AppConfigRow> {
-  const row = await env.gold_prices_db
+  const row = await env.DB
     .prepare(
       `SELECT last_fetch_date, last_fetch_status, cache_ttl_seconds, history_cache_ttl_seconds,
               metals_api_url, goldapi_url, fx_api_url
@@ -102,7 +102,7 @@ export async function getRuntimeConfig(env: Env): Promise<AppConfigRow> {
 }
 
 export async function getActiveCityConfigs(env: Env): Promise<CityConfig[]> {
-  const result = await env.gold_prices_db
+  const result = await env.DB
     .prepare(
       `SELECT city_slug, city_name, country_code, currency, gst_rate, display_unit, timezone, active
        FROM city_config WHERE active = 1 ORDER BY country_code, city_name`,
@@ -357,7 +357,7 @@ function buildEntries(
 }
 
 async function updateFetchStatus(env: Env, today: string | null, status: string): Promise<void> {
-  await env.gold_prices_db
+  await env.DB
     .prepare(`UPDATE app_config SET last_fetch_date = ?, last_fetch_status = ? WHERE id = 1`)
     .bind(today, status)
     .run();
@@ -370,7 +370,7 @@ async function persistEntries(
   config: AppConfigRow,
 ): Promise<void> {
   const statements = entries.map((entry) =>
-    env.gold_prices_db
+    env.DB
       .prepare(
         `INSERT OR IGNORE INTO gold_prices (
           price_date, city_slug, city_name, country_code, karat, price_local, price_usd,
@@ -395,7 +395,7 @@ async function persistEntries(
       ),
   );
 
-  await env.gold_prices_db.batch(statements);
+  await env.DB.batch(statements);
 
   await Promise.all(
     entries.map((entry) =>
@@ -412,7 +412,7 @@ async function persistEntries(
     writeJsonToKv(env.GOLD_CACHE, "today:summary", entries, config.cache_ttl_seconds),
     writeJsonToKv(env.GOLD_CACHE, "rates:usd", rates, config.cache_ttl_seconds),
     purgePrefix(env.GOLD_CACHE, "history:"),
-    env.gold_prices_db.prepare(`DELETE FROM gold_prices WHERE price_date < date('now', '-5 years')`).run(),
+    env.DB.prepare(`DELETE FROM gold_prices WHERE price_date < date('now', '-5 years')`).run(),
   ]);
 }
 

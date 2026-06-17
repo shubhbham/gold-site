@@ -57,7 +57,7 @@ export async function getSummaryHandler(c: Context<AppEnv>) {
       bindings.push(parsed.karat);
     }
 
-    const result = await c.env.gold_prices_db
+    const result = await c.env.DB
       .prepare(
         `SELECT city_slug, city_name, country_code, karat, price_local, price_usd, currency, unit,
                 change_amount, change_percent, high_today, low_today, price_date, fetched_at
