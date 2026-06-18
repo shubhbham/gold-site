@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import type { ApiResponse } from "@gold-site/shared";
 import { handleScheduled } from "./cron";
 import { getCitiesHandler } from "./routes/cities";
-import { getGoldHandler, postAdminFetchHandler } from "./routes/gold";
+import { getGoldHandler, patchGoldHandler, postAdminFetchHandler } from "./routes/gold";
 import { getHealthHandler } from "./routes/health";
 import { getHistoryHandler } from "./routes/history";
 import { getRatesHandler } from "./routes/rates";
@@ -15,7 +15,7 @@ export type AppEnv = {
 
 export const app = new Hono<AppEnv>();
 
-app.use("*", cors({ origin: "*", allowMethods: ["GET", "POST", "OPTIONS"] }));
+app.use("*", cors({ origin: "*", allowMethods: ["GET", "POST", "PATCH", "OPTIONS"] }));
 
 app.get("/", (c) => {
 	const payload: ApiResponse<{ service: string; status: string }> = {
@@ -33,6 +33,7 @@ app.get("/api/cities", getCitiesHandler);
 app.get("/api/rates", getRatesHandler);
 app.get("/api/health", getHealthHandler);
 app.post("/api/admin/fetch", postAdminFetchHandler);
+app.patch("/api/gold", patchGoldHandler);
 
 export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {

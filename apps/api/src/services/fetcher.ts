@@ -44,7 +44,7 @@ interface CityConfigRow {
   city_name: string;
   country_code: string;
   currency: string;
-  gst_rate: number;
+  tax_rate: number;
   display_unit: string;
   timezone: string;
   active: number;
@@ -104,7 +104,7 @@ export async function getRuntimeConfig(env: Env): Promise<AppConfigRow> {
 export async function getActiveCityConfigs(env: Env): Promise<CityConfig[]> {
   const result = await env.DB
     .prepare(
-      `SELECT city_slug, city_name, country_code, currency, gst_rate, display_unit, timezone, active
+      `SELECT city_slug, city_name, country_code, currency, tax_rate, display_unit, timezone, active
        FROM city_config WHERE active = 1 ORDER BY country_code, city_name`,
     )
     .all<CityConfigRow>();
@@ -118,7 +118,7 @@ export async function getActiveCityConfigs(env: Env): Promise<CityConfig[]> {
     city_name: row.city_name,
     country_code: row.country_code,
     currency: row.currency,
-    gst_rate: row.gst_rate,
+    tax_rate: row.tax_rate,
     display_unit: row.display_unit,
     timezone: row.timezone,
     active: Boolean(row.active),
@@ -224,7 +224,7 @@ function convertUsdTroyOunceToLocalUnit(
 
   if (city.country_code === "IN") {
     return roundPrice(
-      usdPerGram * snapshot.rates.INR * 10 * (1 + city.gst_rate) * purityFactor,
+      usdPerGram * snapshot.rates.INR * 10 * (1 + city.tax_rate) * purityFactor,
       0,
     );
   }
@@ -327,6 +327,10 @@ function buildEntries(
   for (const city of cities) {
     for (const karat of [22, 24] as const) {
       const computed = computeLocalPrice(city, karat, snapshot);
+      const changeAmount = roundPrice(
+        computed.priceLocal * (snapshot.changePercent / 100),
+        precisionForCurrency(city.currency),
+      );
       entries.push(enrichRetailEstimate({
         city_slug: city.city_slug,
         city_name: city.city_name,
@@ -335,7 +339,7 @@ function buildEntries(
         price_local: computed.priceLocal,
         currency: city.currency,
         unit: computed.unit,
-        change_amount: computed.changeAmount,
+        change_amount: changeAmount,
         change_percent: snapshot.changePercent,
         high_today:
           snapshot.highUsd === null

@@ -24,6 +24,8 @@ export interface GoldPriceEntry {
 	fetched_at: string;
 	stale: boolean;
 	price_usd?: number;
+	tax_local?: number;
+	tax_rate_percent?: number;
 }
 
 export interface CityConfig {
@@ -31,7 +33,7 @@ export interface CityConfig {
 	city_name: string;
 	country_code: string;
 	currency: string;
-	gst_rate: number;
+	tax_rate: number;
 	display_unit: string;
 	timezone: string;
 	active: boolean;
@@ -73,7 +75,7 @@ export const CITY_CONFIGS: CityConfig[] = [
 		city_name: "Bangalore",
 		country_code: "IN",
 		currency: "INR",
-		gst_rate: 0.03,
+		tax_rate: 0.03,
 		display_unit: "10g",
 		timezone: "Asia/Kolkata",
 		active: true,
@@ -83,7 +85,7 @@ export const CITY_CONFIGS: CityConfig[] = [
 		city_name: "Mumbai",
 		country_code: "IN",
 		currency: "INR",
-		gst_rate: 0.03,
+		tax_rate: 0.03,
 		display_unit: "10g",
 		timezone: "Asia/Kolkata",
 		active: true,
@@ -93,7 +95,7 @@ export const CITY_CONFIGS: CityConfig[] = [
 		city_name: "Delhi",
 		country_code: "IN",
 		currency: "INR",
-		gst_rate: 0.03,
+		tax_rate: 0.03,
 		display_unit: "10g",
 		timezone: "Asia/Kolkata",
 		active: true,
@@ -103,7 +105,7 @@ export const CITY_CONFIGS: CityConfig[] = [
 		city_name: "Chennai",
 		country_code: "IN",
 		currency: "INR",
-		gst_rate: 0.03,
+		tax_rate: 0.03,
 		display_unit: "10g",
 		timezone: "Asia/Kolkata",
 		active: true,
@@ -113,7 +115,7 @@ export const CITY_CONFIGS: CityConfig[] = [
 		city_name: "Hyderabad",
 		country_code: "IN",
 		currency: "INR",
-		gst_rate: 0.03,
+		tax_rate: 0.03,
 		display_unit: "10g",
 		timezone: "Asia/Kolkata",
 		active: true,
@@ -123,7 +125,7 @@ export const CITY_CONFIGS: CityConfig[] = [
 		city_name: "Kolkata",
 		country_code: "IN",
 		currency: "INR",
-		gst_rate: 0.03,
+		tax_rate: 0.03,
 		display_unit: "10g",
 		timezone: "Asia/Kolkata",
 		active: true,
@@ -133,7 +135,7 @@ export const CITY_CONFIGS: CityConfig[] = [
 		city_name: "United States",
 		country_code: "US",
 		currency: "USD",
-		gst_rate: 0,
+		tax_rate: 0,
 		display_unit: "troy oz",
 		timezone: "America/New_York",
 		active: true,
@@ -143,7 +145,7 @@ export const CITY_CONFIGS: CityConfig[] = [
 		city_name: "Canada",
 		country_code: "CA",
 		currency: "CAD",
-		gst_rate: 0,
+		tax_rate: 0.05,
 		display_unit: "troy oz",
 		timezone: "America/Toronto",
 		active: true,
@@ -153,7 +155,7 @@ export const CITY_CONFIGS: CityConfig[] = [
 		city_name: "Dubai",
 		country_code: "AE",
 		currency: "AED",
-		gst_rate: 0,
+		tax_rate: 0.05,
 		display_unit: "gram",
 		timezone: "Asia/Dubai",
 		active: true,
@@ -163,7 +165,7 @@ export const CITY_CONFIGS: CityConfig[] = [
 		city_name: "London",
 		country_code: "GB",
 		currency: "GBP",
-		gst_rate: 0,
+		tax_rate: 0.20,
 		display_unit: "gram",
 		timezone: "Europe/London",
 		active: true,
@@ -300,10 +302,17 @@ export function getRetailPricingRule(countryCode: string): RetailPricingRule {
 export function enrichRetailEstimate(entry: GoldPriceEntry): GoldPriceEntry {
 	const benchmarkLocal = entry.benchmark_local ?? entry.price_local;
 	const rule = getRetailPricingRule(entry.country_code);
+	const cityConfig = getCityConfig(entry.city_slug);
+	const taxRate = cityConfig?.tax_rate ?? 0;
 	const precision = entry.currency === "INR" ? 0 : 2;
 	const factor = 10 ** precision;
 	const retailAdjustmentLocal = Math.round((benchmarkLocal * rule.premium_percent + rule.flat_fee_local) * factor) / factor;
 	const retailLocal = Math.round((benchmarkLocal + retailAdjustmentLocal) * factor) / factor;
+	// For IN: GST is already baked into benchmark_local (inclusive price), so back-calculate the tax portion.
+	// For all others: tax_local is the tax amount that would apply on top of the benchmark.
+	const taxLocal = entry.country_code === "IN"
+		? Math.round((benchmarkLocal * taxRate / (1 + taxRate)) * factor) / factor
+		: Math.round(benchmarkLocal * taxRate * factor) / factor;
 
 	return {
 		...entry,
@@ -311,6 +320,8 @@ export function enrichRetailEstimate(entry: GoldPriceEntry): GoldPriceEntry {
 		retail_local: retailLocal,
 		retail_adjustment_local: retailAdjustmentLocal,
 		retail_adjustment_percent: Math.round(rule.premium_percent * 10000) / 100,
+		tax_local: taxLocal,
+		tax_rate_percent: Math.round(taxRate * 10000) / 100,
 	};
 }
 

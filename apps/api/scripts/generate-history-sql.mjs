@@ -21,17 +21,44 @@ import fs from "node:fs";
 import path from "node:path";
 
 const CITIES = [
-  { city_slug: "bangalore", city_name: "Bangalore", country_code: "IN", currency: "INR", gst_rate: 0.03, display_unit: "10g" },
-  { city_slug: "mumbai", city_name: "Mumbai", country_code: "IN", currency: "INR", gst_rate: 0.03, display_unit: "10g" },
-  { city_slug: "delhi", city_name: "Delhi", country_code: "IN", currency: "INR", gst_rate: 0.03, display_unit: "10g" },
-  { city_slug: "chennai", city_name: "Chennai", country_code: "IN", currency: "INR", gst_rate: 0.03, display_unit: "10g" },
-  { city_slug: "hyderabad", city_name: "Hyderabad", country_code: "IN", currency: "INR", gst_rate: 0.03, display_unit: "10g" },
-  { city_slug: "kolkata", city_name: "Kolkata", country_code: "IN", currency: "INR", gst_rate: 0.03, display_unit: "10g" },
-  { city_slug: "us-national", city_name: "United States", country_code: "US", currency: "USD", gst_rate: 0, display_unit: "troy oz" },
-  { city_slug: "ca-national", city_name: "Canada", country_code: "CA", currency: "CAD", gst_rate: 0, display_unit: "troy oz" },
-  { city_slug: "ae-dubai", city_name: "Dubai", country_code: "AE", currency: "AED", gst_rate: 0, display_unit: "gram" },
-  { city_slug: "uk-london", city_name: "London", country_code: "GB", currency: "GBP", gst_rate: 0, display_unit: "gram" },
+  { city_slug: "bangalore", city_name: "Bangalore", country_code: "IN", currency: "INR", tax_rate: 0.03, display_unit: "10g" },
+  { city_slug: "mumbai", city_name: "Mumbai", country_code: "IN", currency: "INR", tax_rate: 0.03, display_unit: "10g" },
+  { city_slug: "delhi", city_name: "Delhi", country_code: "IN", currency: "INR", tax_rate: 0.03, display_unit: "10g" },
+  { city_slug: "chennai", city_name: "Chennai", country_code: "IN", currency: "INR", tax_rate: 0.03, display_unit: "10g" },
+  { city_slug: "hyderabad", city_name: "Hyderabad", country_code: "IN", currency: "INR", tax_rate: 0.03, display_unit: "10g" },
+  { city_slug: "kolkata", city_name: "Kolkata", country_code: "IN", currency: "INR", tax_rate: 0.03, display_unit: "10g" },
+  { city_slug: "us-national", city_name: "United States", country_code: "US", currency: "USD", tax_rate: 0, display_unit: "troy oz" },
+  { city_slug: "ca-national", city_name: "Canada", country_code: "CA", currency: "CAD", tax_rate: 0.05, display_unit: "troy oz" },
+  { city_slug: "ae-dubai", city_name: "Dubai", country_code: "AE", currency: "AED", tax_rate: 0.05, display_unit: "gram" },
+  { city_slug: "uk-london", city_name: "London", country_code: "GB", currency: "GBP", tax_rate: 0.20, display_unit: "gram" },
 ];
+
+// Approximate annual average FX rates (units of local currency per 1 USD).
+// AED is pegged to USD at 3.6725. INR/CAD/GBP are yearly averages.
+const HISTORICAL_FX = {
+  "2015": { INR: 64.15, CAD: 1.279, AED: 3.673, GBP: 0.655 },
+  "2016": { INR: 67.07, CAD: 1.325, AED: 3.673, GBP: 0.740 },
+  "2017": { INR: 65.11, CAD: 1.299, AED: 3.673, GBP: 0.777 },
+  "2018": { INR: 68.39, CAD: 1.296, AED: 3.673, GBP: 0.751 },
+  "2019": { INR: 70.42, CAD: 1.327, AED: 3.673, GBP: 0.784 },
+  "2020": { INR: 74.10, CAD: 1.341, AED: 3.673, GBP: 0.778 },
+  "2021": { INR: 73.92, CAD: 1.254, AED: 3.673, GBP: 0.728 },
+  "2022": { INR: 78.60, CAD: 1.301, AED: 3.673, GBP: 0.813 },
+  "2023": { INR: 82.58, CAD: 1.350, AED: 3.673, GBP: 0.806 },
+  "2024": { INR: 83.66, CAD: 1.363, AED: 3.673, GBP: 0.784 },
+  "2025": { INR: 86.50, CAD: 1.390, AED: 3.673, GBP: 0.790 },
+  "2026": { INR: 84.48, CAD: 1.390, AED: 3.673, GBP: 0.785 },
+};
+
+function getFxRatesForYear(year) {
+  return HISTORICAL_FX[year] ?? HISTORICAL_FX["2026"];
+}
+
+function parseChangePercent(value) {
+  if (value === undefined || value === null || value === "") return 0;
+  const num = Number(String(value).replace(/[%,]/g, "").trim());
+  return Number.isFinite(num) ? roundPrice(num, 2) : 0;
+}
 
 function getArg(flag, fallback = undefined) {
   const index = process.argv.indexOf(flag);
@@ -130,7 +157,7 @@ function computeLocalPrice(city, karat, usdPerTroyOunce, rates) {
   const purityFactor = karat / 24;
 
   if (city.country_code === "IN") {
-    const base = usdPerGram * rates.INR * 10 * (1 + city.gst_rate) * purityFactor;
+    const base = usdPerGram * rates.INR * 10 * (1 + city.tax_rate) * purityFactor;
     return {
       priceLocal: roundPrice(base, 0),
       priceUsd: roundPrice((usdPerGram * 10) * purityFactor, 2),
@@ -257,6 +284,9 @@ async function main() {
         const cad = getNumber(row, ["cad", "usd_cad", "cad_rate"]);
         const aed = getNumber(row, ["aed", "usd_aed", "aed_rate"]);
         const gbp = getNumber(row, ["gbp", "usd_gbp", "gbp_rate"]);
+        const highUsd = getNumber(row, ["high"]);
+        const lowUsd = getNumber(row, ["low"]);
+        const changePct = parseChangePercent(row["change %"] ?? row["change_percent"] ?? row["change%"]);
 
         if (!date || usdOz === null) return null;
 
@@ -267,6 +297,9 @@ async function main() {
           cad,
           aed,
           gbp,
+          high_usd: highUsd,
+          low_usd: lowUsd,
+          change_pct: changePct,
         };
       })
       .filter(Boolean)
@@ -281,8 +314,6 @@ async function main() {
     throw new Error("no usable rows found");
   }
 
-  const latestFx = await fetchLatestFx();
-
   const statements = [];
   statements.push("BEGIN TRANSACTION;");
 
@@ -290,26 +321,28 @@ async function main() {
     statements.push(`DELETE FROM gold_prices WHERE price_date < '${esc(truncateBefore)}';`);
   }
 
-  const previousByPair = new Map();
-
   for (const row of sourceRows) {
+    const yearRates = getFxRatesForYear(row.date.slice(0, 4));
     const rates = {
-      INR: row.inr ?? latestFx.INR,
-      CAD: row.cad ?? latestFx.CAD,
-      AED: row.aed ?? latestFx.AED,
-      GBP: row.gbp ?? latestFx.GBP,
+      INR: row.inr ?? yearRates.INR,
+      CAD: row.cad ?? yearRates.CAD,
+      AED: row.aed ?? yearRates.AED,
+      GBP: row.gbp ?? yearRates.GBP,
     };
 
     for (const city of CITIES) {
       for (const karat of [22, 24]) {
         const computed = computeLocalPrice(city, karat, row.usd_oz, rates);
-        const key = `${city.city_slug}:${karat}`;
-        const prev = previousByPair.get(key);
+        const precision = city.currency === "INR" ? 0 : 2;
+        const changePercent = row.change_pct ?? 0;
+        const changeAmount = roundPrice(computed.priceLocal * (changePercent / 100), precision);
 
-        const changeAmount = prev ? roundPrice(computed.priceLocal - prev.priceLocal, city.currency === "INR" ? 0 : 2) : 0;
-        const changePercent = prev && prev.priceLocal !== 0
-          ? roundPrice(((computed.priceLocal - prev.priceLocal) / prev.priceLocal) * 100, 2)
-          : 0;
+        const highLocal = row.high_usd != null
+          ? computeLocalPrice(city, karat, row.high_usd, rates).priceLocal
+          : null;
+        const lowLocal = row.low_usd != null
+          ? computeLocalPrice(city, karat, row.low_usd, rates).priceLocal
+          : null;
 
         const fetchedAt = `${row.date}T03:00:00.000Z`;
 
@@ -326,12 +359,11 @@ async function main() {
             `'${esc(computed.unit)}',` +
             `${changeAmount},` +
             `${changePercent},` +
-            "NULL,NULL," +
+            `${highLocal !== null ? highLocal : "NULL"},` +
+            `${lowLocal !== null ? lowLocal : "NULL"},` +
             `'${esc(fetchedAt)}'` +
           ");"
         );
-
-        previousByPair.set(key, { priceLocal: computed.priceLocal });
       }
     }
   }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { enrichRetailEstimate, type ApiResponse, type GoldKarat, type GoldPriceEntry } from "@gold-site/shared";
+import { enrichRetailEstimate, getCityConfig, type ApiResponse, type GoldKarat, type GoldPriceEntry } from "@gold-site/shared";
 import type { Context } from "hono";
 import type { AppEnv } from "../index";
 import { handleScheduled } from "../cron";
@@ -14,6 +14,37 @@ const querySchema = z.object({
     .optional()
     .transform((value) => (value ? Number(value) : 22))
     .pipe(z.union([z.literal(22), z.literal(24)])),
+});
+
+type GoldPriceResponse = Omit<GoldPriceEntry, "price_local" | "retail_adjustment_local">;
+
+function getRetailOverrideKey(citySlug: string, karat: GoldKarat): string {
+  return `retail_override:${citySlug}:${karat}k`;
+}
+
+function applyRetailOverride(entry: GoldPriceEntry, adjustmentPercent: number): GoldPriceEntry {
+  const benchmarkLocal = entry.benchmark_local ?? entry.price_local;
+  const precision = entry.currency === "INR" ? 0 : 2;
+  const factor = 10 ** precision;
+  const retailAdjustmentLocal = Math.round(benchmarkLocal * (adjustmentPercent / 100) * factor) / factor;
+  const retailLocal = Math.round((benchmarkLocal + retailAdjustmentLocal) * factor) / factor;
+  return {
+    ...entry,
+    retail_local: retailLocal,
+    retail_adjustment_local: retailAdjustmentLocal,
+    retail_adjustment_percent: adjustmentPercent,
+  };
+}
+
+function stripPriceFields(entry: GoldPriceEntry): GoldPriceResponse {
+  const { price_local: _p, retail_adjustment_local: _r, ...rest } = entry;
+  return rest;
+}
+
+const patchBodySchema = z.object({
+  city: z.string().regex(/^[a-z0-9-]+$/),
+  karat: z.union([z.literal(22), z.literal(24)]),
+  retail_adjustment_percent: z.number().min(0).max(100),
 });
 
 async function constantTimeEquals(provided: string, expected: string): Promise<boolean> {
@@ -85,8 +116,13 @@ export async function getGoldHandler(c: Context<AppEnv>) {
 
     if (cached) {
       const withWeek = await withWeeklyChange(c, cached);
-      const payload: ApiResponse<GoldPriceEntry> = {
-        data: enrichRetailEstimate(markStale(withWeek)),
+      let entry = enrichRetailEstimate(markStale(withWeek));
+      const override = await c.env.GOLD_CACHE.get(getRetailOverrideKey(resolvedCity.city_slug, karat), "json") as { retail_adjustment_percent: number } | null;
+      if (override) {
+        entry = applyRetailOverride(entry, override.retail_adjustment_percent);
+      }
+      const payload: ApiResponse<GoldPriceResponse> = {
+        data: stripPriceFields(entry),
         error: null,
         cached: true,
       };
@@ -117,13 +153,17 @@ export async function getGoldHandler(c: Context<AppEnv>) {
 
     const config = await getRuntimeConfig(c.env);
     const entryWithWeek = await withWeeklyChange(c, { ...row, stale: false });
-    const entry = enrichRetailEstimate(markStale(entryWithWeek));
+    let entry = enrichRetailEstimate(markStale(entryWithWeek));
+    const override = await c.env.GOLD_CACHE.get(getRetailOverrideKey(resolvedCity.city_slug, karat), "json") as { retail_adjustment_percent: number } | null;
+    if (override) {
+      entry = applyRetailOverride(entry, override.retail_adjustment_percent);
+    }
     await writeJsonToKv(c.env.GOLD_CACHE, cacheKey, entry, config.cache_ttl_seconds);
-    const payload: ApiResponse<GoldPriceEntry> = { data: entry, error: null, cached: false };
+    const payload: ApiResponse<GoldPriceResponse> = { data: stripPriceFields(entry), error: null, cached: false };
     c.header("X-Cache", "MISS");
     return c.json(payload);
   } catch (error) {
-    const payload: ApiResponse<GoldPriceEntry> = {
+    const payload: ApiResponse<GoldPriceResponse> = {
       data: null,
       error: error instanceof Error ? error.message : "invalid_request",
       cached: false,
@@ -151,6 +191,68 @@ export async function postAdminFetchHandler(c: Context<AppEnv>) {
       {
         data: null,
         error: error instanceof Error ? error.message : "fetch_failed",
+        cached: false,
+      } satisfies ApiResponse<null>,
+      500,
+    );
+  }
+}
+
+export async function patchGoldHandler(c: Context<AppEnv>) {
+  try {
+    const headerValue = c.req.header("X-Admin-Key");
+    if (!headerValue || !(await constantTimeEquals(headerValue, c.env.ADMIN_KEY))) {
+      return c.json({ data: null, error: "unauthorized", cached: false } satisfies ApiResponse<null>, 401);
+    }
+
+    const body = await c.req.json();
+    const parsed = patchBodySchema.parse(body);
+    const karat = parsed.karat as GoldKarat;
+    const citySlug = parsed.city;
+
+    const cityConfig = getCityConfig(citySlug);
+    if (!cityConfig) {
+      return c.json({ data: null, error: "unknown_city", cached: false } satisfies ApiResponse<null>, 400);
+    }
+
+    const cacheKey = getGoldCacheKey(cityConfig.country_code, citySlug, karat);
+    const config = await getRuntimeConfig(c.env);
+
+    let current = await readJsonFromKv<GoldPriceEntry>(c.env.GOLD_CACHE, cacheKey);
+    if (!current) {
+      const row = await c.env.DB
+        .prepare(
+          `SELECT city_slug, city_name, country_code, karat, price_local, price_usd, currency, unit,
+                  change_amount, change_percent, high_today, low_today, price_date, fetched_at
+           FROM gold_prices WHERE city_slug = ? AND karat = ? ORDER BY price_date DESC LIMIT 1`,
+        )
+        .bind(citySlug, karat)
+        .first<Omit<GoldPriceEntry, "stale">>();
+
+      if (!row) {
+        return c.json({ data: null, error: "price_unavailable", cached: false } satisfies ApiResponse<null>, 404);
+      }
+      current = enrichRetailEstimate({ ...row, stale: false });
+    }
+
+    const updated = applyRetailOverride(current, parsed.retail_adjustment_percent);
+
+    // Persist override — survives daily cron refresh
+    await c.env.GOLD_CACHE.put(
+      getRetailOverrideKey(citySlug, karat),
+      JSON.stringify({ retail_adjustment_percent: parsed.retail_adjustment_percent }),
+    );
+
+    // Update main cache entry immediately
+    await writeJsonToKv(c.env.GOLD_CACHE, cacheKey, updated, config.cache_ttl_seconds);
+
+    const payload: ApiResponse<GoldPriceResponse> = { data: stripPriceFields(updated), error: null, cached: false };
+    return c.json(payload);
+  } catch (error) {
+    return c.json(
+      {
+        data: null,
+        error: error instanceof Error ? error.message : "patch_failed",
         cached: false,
       } satisfies ApiResponse<null>,
       500,

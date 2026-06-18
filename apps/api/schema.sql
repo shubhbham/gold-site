@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS city_config (
   city_name TEXT NOT NULL,
   country_code TEXT NOT NULL,
   currency TEXT NOT NULL,
-  gst_rate REAL NOT NULL DEFAULT 0,
+  tax_rate REAL NOT NULL DEFAULT 0,
   display_unit TEXT NOT NULL,
   timezone TEXT NOT NULL,
   active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1))
@@ -81,7 +81,7 @@ INSERT OR REPLACE INTO city_config (
   city_name,
   country_code,
   currency,
-  gst_rate,
+  tax_rate,
   display_unit,
   timezone,
   active
@@ -92,7 +92,7 @@ INSERT OR REPLACE INTO city_config (
   ('chennai', 'Chennai', 'IN', 'INR', 0.03, '10g', 'Asia/Kolkata', 1),
   ('hyderabad', 'Hyderabad', 'IN', 'INR', 0.03, '10g', 'Asia/Kolkata', 1),
   ('kolkata', 'Kolkata', 'IN', 'INR', 0.03, '10g', 'Asia/Kolkata', 1),
-  ('us-national', 'United States', 'US', 'USD', 0, 'troy oz', 'America/New_York', 1),
-  ('ca-national', 'Canada', 'CA', 'CAD', 0, 'troy oz', 'America/Toronto', 1),
-  ('ae-dubai', 'Dubai', 'AE', 'AED', 0, 'gram', 'Asia/Dubai', 1),
-  ('uk-london', 'London', 'GB', 'GBP', 0, 'gram', 'Europe/London', 1);
+  ('us-national', 'United States', 'US', 'USD', 0.00, 'troy oz', 'America/New_York', 1),
+  ('ca-national', 'Canada', 'CA', 'CAD', 0.05, 'troy oz', 'America/Toronto', 1),
+  ('ae-dubai', 'Dubai', 'AE', 'AED', 0.05, 'gram', 'Asia/Dubai', 1),
+  ('uk-london', 'London', 'GB', 'GBP', 0.20, 'gram', 'Europe/London', 1);

@@ -63,7 +63,7 @@ export async function getHistoryHandler(c: Context<AppEnv>) {
       GROUP BY substr(price_date, 1, 7)
       ORDER BY price_date ASC`;
 
-    const sql = days <= 90 ? dailySql : days <= 365 ? weeklySql : monthlySql;
+    const sql = days <= 180 ? dailySql : days <= 730 ? weeklySql : monthlySql;
     const windowExpr = `-${days} days`;
     const result = await c.env.DB
       .prepare(sql)
